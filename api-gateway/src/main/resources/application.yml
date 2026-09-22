@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "*"
+                allowedMethods: "*"
+                allowedHeaders: "*"
+          routes:
+            - id: event-service
+              uri: ${EVENT_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/events/**
+            - id: venue-service
+              uri: ${VENUE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/venues/**
+            - id: venue-seats
+              uri: ${VENUE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/seats/**
+            - id: reservation-service
+              uri: ${RESERVATION_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/reservations/**
+            - id: payment-service
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/payments/**
+            - id: ticket-service
+              uri: ${TICKET_SERVICE_URL:http://localhost:8085}
+              predicates:
+                - Path=/api/tickets/**
+            - id: notification-service
+              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/notifications/**
+            - id: analytics-service
+              uri: ${ANALYTICS_SERVICE_URL:http://localhost:8087}
+              predicates:
+                - Path=/api/analytics/**
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8088}
+              predicates:
+                - Path=/api/users/**
+server:
+  port: ${SERVER_PORT_GATEWAY:8080}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      probes:
+        enabled: true
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

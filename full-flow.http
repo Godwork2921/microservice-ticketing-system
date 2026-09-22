@@ -1,0 +1,110 @@
+### Full flow: register user -> venue -> event -> hold seats -> pay
+# Requires: all services running locally (user 8088, venue 8082, event 8081,
+# reservation 8083, payment 8084) with infra (postgres/kafka/minio) in Docker.
+
+### 1. Register a user
+POST http://localhost:8088/api/users
+Content-Type: application/json
+
+{
+  "email": "jane@example.com",
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "phone": "+251911000000",
+  "locale": "en"
+}
+
+> {% client.global.set("userId", response.body.id); %}
+
+### 2. Create a venue
+POST http://localhost:8082/api/venues
+Content-Type: application/json
+
+{
+  "name": "Grand Arena",
+  "address": "Addis Ababa, Bole Road",
+  "timezone": "Africa/Addis_Ababa",
+  "capacity": 200
+}
+
+> {% client.global.set("venueId", response.body.id); %}
+
+### 3. Import seats (needed before holding)
+POST http://localhost:8082/api/venues/{{venueId}}/seats
+Content-Type: application/json
+
+[
+  { "section": "STANDARD", "row": "A", "number": 1, "attributes": "{}" },
+  { "section": "STANDARD", "row": "A", "number": 2, "attributes": "{}" },
+  { "section": "VIP", "row": "B", "number": 1, "attributes": "{}" }
+]
+
+> {% client.global.set("seat1", response.body[0].id); client.global.set("seat2", response.body[1].id); client.global.set("seat3", response.body[2].id); %}
+
+### 4. Create event
+POST http://localhost:8081/api/events
+Content-Type: application/json
+
+{
+  "venueId": "{{venueId}}",
+  "title": "Night of Jazz 2026",
+  "startAt": "2026-12-01T19:00:00Z",
+  "endAt": "2026-12-01T22:00:00Z",
+  "pricingRules": "{\"STANDARD\":100,\"VIP\":150,\"DEFAULT\":75}"
+}
+
+> {% client.global.set("eventId", response.body.id); %}
+
+### 5. Publish the event (required before hold)
+PUT http://localhost:8081/api/events/{{eventId}}
+Content-Type: application/json
+
+{
+  "venueId": "{{venueId}}",
+  "title": "Night of Jazz 2026",
+  "startAt": "2026-12-01T19:00:00Z",
+  "endAt": "2026-12-01T22:00:00Z",
+  "status": "PUBLISHED",
+  "pricingRules": "{\"STANDARD\":100,\"VIP\":150,\"DEFAULT\":75}"
+}
+
+### 6. Hold the seats (event must be PUBLISHED)
+POST http://localhost:8083/api/reservations/hold
+Content-Type: application/json
+
+{
+  "eventId": "{{eventId}}",
+  "seatIds": ["{{seat1}}", "{{seat2}}", "{{seat3}}"],
+  "currency": "USD"
+}
+
+> {% client.global.set("reservationId", response.body.id); client.global.set("total", response.body.totalAmount); %}
+
+### 7. Pay for the reservation (amount must equal totalAmount)
+POST http://localhost:8084/api/payments
+Content-Type: application/json
+
+{
+  "reservationId": "{{reservationId}}",
+  "customerId": "{{userId}}",
+  "amount": {{total}},
+  "currency": "USD",
+  "provider": "mock",
+  "email": "jane@example.com",
+  "returnUrl": "http://localhost:8084/success",
+  "callbackUrl": "http://localhost:8084/callback"
+}
+
+> {% client.global.set("paymentId", response.body.id); %}
+
+### 8. Mark payment succeeded (dev path) - triggers ticket issuance
+POST http://localhost:8084/api/payments/{{paymentId}}/succeed
+Content-Type: application/json
+
+{}
+
+### 9. Verify: reservation becomes CONFIRMED after the async chain
+GET http://localhost:8083/api/reservations/{{reservationId}}
+
+### 10. Verify: tickets are issued
+GET http://localhost:8085/api/tickets/reservation/{{reservationId}}

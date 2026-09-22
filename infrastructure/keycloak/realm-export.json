@@ -1,0 +1,34 @@
+{
+  "realm": "ticketing",
+  "enabled": true,
+  "displayName": "Ticketing",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "CUSTOMER", "description": "Browse and manage owned reservations and tickets" },
+      { "name": "OPERATOR", "description": "Manage events, venues, seats, and reports" },
+      { "name": "STAFF", "description": "Validate tickets and assist customers" },
+      { "name": "ADMIN", "description": "Full administrative access" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "ticketing-api",
+      "name": "Ticketing API",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ]
+}

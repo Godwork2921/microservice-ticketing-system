@@ -1,0 +1,1409 @@
+﻿# PROJECT_FILE_MANIFEST.md
+
+Auto-generated manifest of every tracked source, resource, migration, test, and
+infrastructure file in this repository. Regenerate with:
+    powershell -File scripts/generate-manifest.ps1
+
+Generated: 2026-09-19 06:33:36
+
+Map to docs/STAGE-01-SKELETON.md. The reactor artifact `backend` (packaging=pom)
+only bundles module poms. Services never share JPA entities or databases.
+
+## Root
+
+``````
+.
+.github/
+    modernize/
+        java-upgrade/
+            hooks/
+                scripts/
+                    recordToolUse.ps1
+                    recordToolUse.sh
+            .gitignore
+analytics-service/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            analytics/
+                                config/
+                                    CorrelationContext.java
+                                    KafkaConsumerConfig.java
+                                    SecurityConfig.java
+                                controller/
+                                    AnalyticsController.java
+                                dto/
+                                    AnalyticsEventRequest.java
+                                    AnalyticsOverview.java
+                                    AnalyticsSummary.java
+                                entity/
+                                    AnalyticsEventEntity.java
+                                    ProcessedEventEntity.java
+                                exception/
+                                messaging/
+                                    AnalyticsEventListener.java
+                                projection/
+                                report/
+                                repository/
+                                    AnalyticsEventRepository.java
+                                    ProcessedEventRepository.java
+                                service/
+                                    impl/
+                                    AnalyticsService.java
+                                    AnalyticsServiceImpl.java
+                                AnalyticsServiceApplication.java
+            resources/
+                db/
+                    migration/
+                        V1__init.sql
+                        V2__processed_events.sql
+                application.yml
+        test/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            analytics/
+                                messaging/
+                                    AnalyticsEventListenerTest.java
+                                service/
+                                    AnalyticsServiceImplTest.java
+    .LCKpom.xml~
+    Dockerfile
+    pom.xml
+api-gateway/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            gateway/
+                                config/
+                                    SecurityConfig.java
+                                filter/
+                                    CorrelationIdWebFilter.java
+                                route/
+                                security/
+                                GatewayApplication.java
+            resources/
+                application.yml
+        test/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            gateway/
+                                GatewayApplicationTest.java
+    Dockerfile
+    pom.xml
+common-lib/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            common/
+                                cache/
+                                    TtlLruCache.java
+                                config/
+                                    CommonJacksonAutoConfiguration.java
+                                error/
+                                    ApiErrorResponse.java
+                                    ErrorCode.java
+                                events/
+                                    payload/
+                                        EventPublishedEvent.java
+                                        NotificationRequestedEvent.java
+                                        NotificationSentEvent.java
+                                        PaymentFailedEvent.java
+                                        PaymentInitiatedEvent.java
+                                        PaymentSuccessfulEvent.java
+                                        ReservationCreatedEvent.java
+                                        ReservationStateChangedEvent.java
+                                        TicketGeneratedEvent.java
+                                    DomainEventEnvelope.java
+                                    EventTypes.java
+                                    KafkaTopics.java
+                                json/
+                                    JsonMapperFactory.java
+                                observability/
+                                    CorrelationHeaders.java
+                                    RequestIdGenerator.java
+                                retry/
+                                    RetryPolicy.java
+            resources/
+                META-INF/
+                    spring/
+                        org.springframework.boot.autoconfigure.AutoConfiguration.imports
+        test/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            common/
+                                cache/
+                                    TtlLruCacheTest.java
+    pom.xml
+docs/
+    STAGE-01-SKELETON.md
+event-service/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            event/
+                                client/
+                                    RemoteVenueClient.java
+                                    VenueClient.java
+                                    VenueUnavailableException.java
+                                config/
+                                    CorrelationContext.java
+                                    KafkaProducerConfig.java
+                                    RequestIdFilter.java
+                                    SecurityConfig.java
+                                controller/
+                                    EventController.java
+                                dto/
+                                    request/
+                                        CreateEventRequest.java
+                                        UpdateEventRequest.java
+                                    response/
+                                        EventResponse.java
+                                        PageResponse.java
+                                entity/
+                                    EventEntity.java
+                                    OutboxEntity.java
+                                enums/
+                                    EventStatus.java
+                                    OutboxStatus.java
+                                exception/
+                                    ApiError.java
+                                    EventNotFoundException.java
+                                    GlobalExceptionHandler.java
+                                    InvalidEventStateException.java
+                                    InvalidEventTimeException.java
+                                    InvalidPricingRulesException.java
+                                mapper/
+                                messaging/
+                                    EventEventOutbox.java
+                                    OutboxPublisher.java
+                                repository/
+                                    EventRepository.java
+                                    OutboxRepository.java
+                                service/
+                                    impl/
+                                        EventServiceImpl.java
+                                    EventService.java
+                                validation/
+                                EventServiceApplication.java
+            resources/
+                db/
+                    migration/
+                        V1__init.sql
+                        V2__seat_count_and_outbox.sql
+                application.yml
+        test/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            event/
+                                controller/
+                                    EventControllerTest.java
+                                service/
+                                    EventServiceImplTest.java
+    Dockerfile
+    pom.xml
+infrastructure/
+    docker/
+        .gitkeep
+        README.md
+    kafka/
+        .gitkeep
+        README.md
+    keycloak/
+        kcadm-init.sh
+        realm-export.json
+    minio/
+        .gitkeep
+        README.md
+    postgres/
+        init/
+            01-create-databases.sql
+    README.md
+notification-service/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            notification/
+                                config/
+                                    CorrelationContext.java
+                                    KafkaConsumerConfig.java
+                                    KafkaProducerConfig.java
+                                    SecurityConfig.java
+                                controller/
+                                    ApiExceptionHandler.java
+                                    NotificationController.java
+                                dto/
+                                    NotificationResponse.java
+                                    SendNotificationRequest.java
+                                email/
+                                entity/
+                                    NotificationEntity.java
+                                    OutboxEntity.java
+                                enums/
+                                    NotificationChannel.java
+                                    NotificationStatus.java
+                                    OutboxStatus.java
+                                exception/
+                                    NotificationNotFoundException.java
+                                mapper/
+                                    NotificationMapper.java
+                                messaging/
+                                    NotificationEventListener.java
+                                    NotificationEventOutbox.java
+                                    OutboxPublisher.java
+                                provider/
+                                    MockNotificationProvider.java
+                                    NotificationProvider.java
+                                push/
+                                repository/
+                                    NotificationRepository.java
+                                    OutboxRepository.java
+                                service/
+                                    impl/
+                                    NotificationService.java
+                                    NotificationServiceImpl.java
+                                sms/
+                                NotificationServiceApplication.java
+            resources/
+                db/
+                    migration/
+                        V1__init.sql
+                        V2__push_and_outbox.sql
+                application.yml
+        test/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            notification/
+                                messaging/
+                                    NotificationEventListenerTest.java
+                                service/
+                                    NotificationServiceImplTest.java
+    .LCKpom.xml~
+    Dockerfile
+    pom.xml
+payment-service/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            payment/
+                                client/
+                                    RemoteReservationClient.java
+                                    ReservationClient.java
+                                    ReservationDetails.java
+                                config/
+                                    ChapaConfig.java
+                                    CorrelationContext.java
+                                    CorrelationIdFilter.java
+                                    KafkaProducerConfig.java
+                                    SecurityConfig.java
+                                    TicketingClockConfig.java
+                                controller/
+                                    ApiExceptionHandler.java
+                                    PaymentController.java
+                                dto/
+                                    request/
+                                    response/
+                                    ChapaCallbackRequest.java
+                                    ChapaInitializeResponse.java
+                                    ChapaPaymentResponse.java
+                                    ChapaVerifyResponse.java
+                                    CreatePaymentRequest.java
+                                    FailPaymentRequest.java
+                                    PaymentResponse.java
+                                    WebhookPayload.java
+                                entity/
+                                    OutboxEntity.java
+                                    PaymentEntity.java
+                                enums/
+                                    OutboxStatus.java
+                                    PaymentStatus.java
+                                exception/
+                                    ChapaIntegrationException.java
+                                    InvalidPaymentStateException.java
+                                    PaymentNotFoundException.java
+                                    ServiceUnavailableException.java
+                                    WebhookVerificationException.java
+                                idempotency/
+                                mapper/
+                                    PaymentMapper.java
+                                messaging/
+                                    OutboxPublisher.java
+                                    PaymentEventOutbox.java
+                                provider/
+                                    ChapaClient.java
+                                    ChapaPaymentProvider.java
+                                    MockPaymentProvider.java
+                                    PaymentProvider.java
+                                    PaymentProviderFactory.java
+                                repository/
+                                    OutboxRepository.java
+                                    PaymentRepository.java
+                                service/
+                                    impl/
+                                    PaymentService.java
+                                    PaymentServiceImpl.java
+                                webhook/
+                                PaymentServiceApplication.java
+            resources/
+                db/
+                    migration/
+                        V1__init.sql
+                        V2__add_checkout_url.sql
+                        V3__outbox.sql
+                application.yml
+        test/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            payment/
+                                service/
+                                    PaymentServiceImplTest.java
+                                PaymentWebhookIntegrationTest.java
+    Dockerfile
+    pom.xml
+postman/
+    Ticketing.local.postman_environment.json
+    Ticketing.postman_collection.json
+reservation-service/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            reservation/
+                                cache/
+                                client/
+                                    EventClient.java
+                                    EventDetails.java
+                                    SeatClient.java
+                                    SeatDetails.java
+                                config/
+                                    CorrelationContext.java
+                                    CorrelationIdFilter.java
+                                    KafkaConsumerConfig.java
+                                    KafkaProducerConfig.java
+                                    ReservationProperties.java
+                                    SecurityConfig.java
+                                    TicketingClockConfig.java
+                                controller/
+                                    ApiExceptionHandler.java
+                                    ReservationController.java
+                                dto/
+                                    request/
+                                    response/
+                                    HoldReservationRequest.java
+                                    ReservationResponse.java
+                                    ReservationSeatResponse.java
+                                entity/
+                                    OutboxEntity.java
+                                    ReservationEntity.java
+                                    ReservationSeatEntity.java
+                                enums/
+                                    OutboxStatus.java
+                                    ReservationStatus.java
+                                exception/
+                                    DiscountNotApplicableException.java
+                                    EventNotAvailableException.java
+                                    EventNotBookableException.java
+                                    InvalidReservationStateException.java
+                                    ReservationExpiredException.java
+                                    ReservationNotFoundException.java
+                                    SeatAlreadyReservedException.java
+                                    ServiceUnavailableException.java
+                                lock/
+                                mapper/
+                                    ReservationMapper.java
+                                messaging/
+                                    OutboxPublisher.java
+                                    PaymentEventListener.java
+                                    ReservationEventOutbox.java
+                                repository/
+                                    OutboxRepository.java
+                                    ReservationRepository.java
+                                    ReservationSeatRepository.java
+                                scheduler/
+                                    HoldExpirationScheduler.java
+                                service/
+                                    impl/
+                                    DiscountService.java
+                                    PricingService.java
+                                    ReservationService.java
+                                    ReservationServiceImpl.java
+                                validation/
+                                ReservationServiceApplication.java
+            resources/
+                db/
+                    migration/
+                        V1__init.sql
+                        V2__constraints.sql
+                        V3__indexes.sql
+                        V4__outbox_discounts.sql
+                application.yml
+        test/
+            concurrency/
+            integration/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            reservation/
+                                messaging/
+                                    PaymentEventListenerTest.java
+                                service/
+                                    ReservationServiceImplTest.java
+                                ReservationConcurrencyIntegrationTest.java
+            unit/
+    .LCKpom.xml~
+    Dockerfile
+    pom.xml
+scripts/
+    generate-manifest.ps1
+ticket-service/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            ticket/
+                                client/
+                                    RemoteReservationClient.java
+                                    ReservationClient.java
+                                    ReservationDetails.java
+                                config/
+                                    CorrelationContext.java
+                                    CorrelationIdFilter.java
+                                    KafkaConsumerConfig.java
+                                    KafkaProducerConfig.java
+                                    SecurityConfig.java
+                                    StorageConfig.java
+                                    TicketingClockConfig.java
+                                controller/
+                                    ApiExceptionHandler.java
+                                    TicketController.java
+                                dto/
+                                    IssueTicketsRequest.java
+                                    TicketResponse.java
+                                entity/
+                                    OutboxEntity.java
+                                    TicketEntity.java
+                                enums/
+                                    OutboxStatus.java
+                                    TicketStatus.java
+                                exception/
+                                    InvalidTicketStateException.java
+                                    TicketGenerationException.java
+                                    TicketNotFoundException.java
+                                mapper/
+                                    TicketMapper.java
+                                messaging/
+                                    OutboxPublisher.java
+                                    PaymentEventListener.java
+                                    TicketEventOutbox.java
+                                qr/
+                                    QrCodeService.java
+                                repository/
+                                    OutboxRepository.java
+                                    TicketRepository.java
+                                service/
+                                    impl/
+                                    TicketService.java
+                                    TicketServiceImpl.java
+                                storage/
+                                    LocalTicketObjectStorage.java
+                                    MinioTicketObjectStorage.java
+                                    TicketObjectStorage.java
+                                TicketServiceApplication.java
+            resources/
+                db/
+                    migration/
+                        V1__init.sql
+                        V2__qr_and_outbox.sql
+                application.yml
+        test/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            ticket/
+                                service/
+                                    TicketServiceImplTest.java
+    Dockerfile
+    pom.xml
+user-service/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            user/
+                                config/
+                                    CorrelationContext.java
+                                    RequestIdFilter.java
+                                    SecurityConfig.java
+                                controller/
+                                    ApiExceptionHandler.java
+                                    UserController.java
+                                dto/
+                                    request/
+                                        RegisterUserRequest.java
+                                        UpdateUserRequest.java
+                                    response/
+                                        UserResponse.java
+                                entity/
+                                    UserEntity.java
+                                exception/
+                                    EmailAlreadyRegisteredException.java
+                                    UserNotFoundException.java
+                                mapper/
+                                repository/
+                                    UserRepository.java
+                                service/
+                                    impl/
+                                    UserService.java
+                                    UserServiceImpl.java
+                                UserServiceApplication.java
+            resources/
+                db/
+                    migration/
+                        V1__init.sql
+                application.yml
+        test/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            user/
+                                controller/
+                                    UserControllerTest.java
+                                service/
+                                    UserServiceImplTest.java
+                                UserPersistenceIntegrationTest.java
+    Dockerfile
+    pom.xml
+venue-service/
+    src/
+        main/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            venue/
+                                config/
+                                    RequestIdFilter.java
+                                    SecurityConfig.java
+                                controller/
+                                    VenueController.java
+                                dto/
+                                    request/
+                                        CreateVenueRequest.java
+                                        SeatRequest.java
+                                        UpdateVenueRequest.java
+                                    response/
+                                        PageResponse.java
+                                        SeatCountResponse.java
+                                        SeatResponse.java
+                                        VenueResponse.java
+                                entity/
+                                    SeatEntity.java
+                                    VenueEntity.java
+                                enums/
+                                exception/
+                                    ApiError.java
+                                    GlobalExceptionHandler.java
+                                    InvalidSeatAttributesException.java
+                                    VenueNotFoundException.java
+                                mapper/
+                                messaging/
+                                repository/
+                                    SeatRepository.java
+                                    VenueRepository.java
+                                service/
+                                    impl/
+                                        SeatServiceImpl.java
+                                        VenueServiceImpl.java
+                                    SeatService.java
+                                    VenueService.java
+                                validation/
+                                VenueServiceApplication.java
+            resources/
+                db/
+                    migration/
+                        V1__init.sql
+                application.yml
+        test/
+            java/
+                com/
+                    yeab/
+                        ticketing/
+                            venue/
+                                controller/
+                                    VenueControllerTest.java
+                                service/
+                                    VenueServiceTest.java
+    Dockerfile
+    pom.xml
+.dockerignore
+.env.example
+.gitattributes
+.gitignore
+docker-compose.yml
+full-flow.http
+HELP.md
+mvnw
+mvnw.cmd
+pom.xml
+README.md
+``````
+
+## .github
+
+``````
+modernize/
+    java-upgrade/
+        hooks/
+            scripts/
+                recordToolUse.ps1
+                recordToolUse.sh
+        .gitignore
+``````
+
+## analytics-service (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        analytics/
+                            config/
+                                CorrelationContext.java
+                                KafkaConsumerConfig.java
+                                SecurityConfig.java
+                            controller/
+                                AnalyticsController.java
+                            dto/
+                                AnalyticsEventRequest.java
+                                AnalyticsOverview.java
+                                AnalyticsSummary.java
+                            entity/
+                                AnalyticsEventEntity.java
+                                ProcessedEventEntity.java
+                            exception/
+                            messaging/
+                                AnalyticsEventListener.java
+                            projection/
+                            report/
+                            repository/
+                                AnalyticsEventRepository.java
+                                ProcessedEventRepository.java
+                            service/
+                                impl/
+                                AnalyticsService.java
+                                AnalyticsServiceImpl.java
+                            AnalyticsServiceApplication.java
+        resources/
+            db/
+                migration/
+                    V1__init.sql
+                    V2__processed_events.sql
+            application.yml
+    test/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        analytics/
+                            messaging/
+                                AnalyticsEventListenerTest.java
+                            service/
+                                AnalyticsServiceImplTest.java
+.LCKpom.xml~
+Dockerfile
+pom.xml
+``````
+
+## api-gateway (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        gateway/
+                            config/
+                                SecurityConfig.java
+                            filter/
+                                CorrelationIdWebFilter.java
+                            route/
+                            security/
+                            GatewayApplication.java
+        resources/
+            application.yml
+    test/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        gateway/
+                            GatewayApplicationTest.java
+Dockerfile
+pom.xml
+``````
+
+## common-lib (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        common/
+                            cache/
+                                TtlLruCache.java
+                            config/
+                                CommonJacksonAutoConfiguration.java
+                            error/
+                                ApiErrorResponse.java
+                                ErrorCode.java
+                            events/
+                                payload/
+                                    EventPublishedEvent.java
+                                    NotificationRequestedEvent.java
+                                    NotificationSentEvent.java
+                                    PaymentFailedEvent.java
+                                    PaymentInitiatedEvent.java
+                                    PaymentSuccessfulEvent.java
+                                    ReservationCreatedEvent.java
+                                    ReservationStateChangedEvent.java
+                                    TicketGeneratedEvent.java
+                                DomainEventEnvelope.java
+                                EventTypes.java
+                                KafkaTopics.java
+                            json/
+                                JsonMapperFactory.java
+                            observability/
+                                CorrelationHeaders.java
+                                RequestIdGenerator.java
+                            retry/
+                                RetryPolicy.java
+        resources/
+            META-INF/
+                spring/
+                    org.springframework.boot.autoconfigure.AutoConfiguration.imports
+    test/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        common/
+                            cache/
+                                TtlLruCacheTest.java
+pom.xml
+``````
+
+## docs
+
+``````
+STAGE-01-SKELETON.md
+``````
+
+## event-service (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        event/
+                            client/
+                                RemoteVenueClient.java
+                                VenueClient.java
+                                VenueUnavailableException.java
+                            config/
+                                CorrelationContext.java
+                                KafkaProducerConfig.java
+                                RequestIdFilter.java
+                                SecurityConfig.java
+                            controller/
+                                EventController.java
+                            dto/
+                                request/
+                                    CreateEventRequest.java
+                                    UpdateEventRequest.java
+                                response/
+                                    EventResponse.java
+                                    PageResponse.java
+                            entity/
+                                EventEntity.java
+                                OutboxEntity.java
+                            enums/
+                                EventStatus.java
+                                OutboxStatus.java
+                            exception/
+                                ApiError.java
+                                EventNotFoundException.java
+                                GlobalExceptionHandler.java
+                                InvalidEventStateException.java
+                                InvalidEventTimeException.java
+                                InvalidPricingRulesException.java
+                            mapper/
+                            messaging/
+                                EventEventOutbox.java
+                                OutboxPublisher.java
+                            repository/
+                                EventRepository.java
+                                OutboxRepository.java
+                            service/
+                                impl/
+                                    EventServiceImpl.java
+                                EventService.java
+                            validation/
+                            EventServiceApplication.java
+        resources/
+            db/
+                migration/
+                    V1__init.sql
+                    V2__seat_count_and_outbox.sql
+            application.yml
+    test/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        event/
+                            controller/
+                                EventControllerTest.java
+                            service/
+                                EventServiceImplTest.java
+Dockerfile
+pom.xml
+``````
+
+## infrastructure
+
+``````
+docker/
+    .gitkeep
+    README.md
+kafka/
+    .gitkeep
+    README.md
+keycloak/
+    kcadm-init.sh
+    realm-export.json
+minio/
+    .gitkeep
+    README.md
+postgres/
+    init/
+        01-create-databases.sql
+README.md
+``````
+
+## notification-service (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        notification/
+                            config/
+                                CorrelationContext.java
+                                KafkaConsumerConfig.java
+                                KafkaProducerConfig.java
+                                SecurityConfig.java
+                            controller/
+                                ApiExceptionHandler.java
+                                NotificationController.java
+                            dto/
+                                NotificationResponse.java
+                                SendNotificationRequest.java
+                            email/
+                            entity/
+                                NotificationEntity.java
+                                OutboxEntity.java
+                            enums/
+                                NotificationChannel.java
+                                NotificationStatus.java
+                                OutboxStatus.java
+                            exception/
+                                NotificationNotFoundException.java
+                            mapper/
+                                NotificationMapper.java
+                            messaging/
+                                NotificationEventListener.java
+                                NotificationEventOutbox.java
+                                OutboxPublisher.java
+                            provider/
+                                MockNotificationProvider.java
+                                NotificationProvider.java
+                            push/
+                            repository/
+                                NotificationRepository.java
+                                OutboxRepository.java
+                            service/
+                                impl/
+                                NotificationService.java
+                                NotificationServiceImpl.java
+                            sms/
+                            NotificationServiceApplication.java
+        resources/
+            db/
+                migration/
+                    V1__init.sql
+                    V2__push_and_outbox.sql
+            application.yml
+    test/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        notification/
+                            messaging/
+                                NotificationEventListenerTest.java
+                            service/
+                                NotificationServiceImplTest.java
+.LCKpom.xml~
+Dockerfile
+pom.xml
+``````
+
+## payment-service (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        payment/
+                            client/
+                                RemoteReservationClient.java
+                                ReservationClient.java
+                                ReservationDetails.java
+                            config/
+                                ChapaConfig.java
+                                CorrelationContext.java
+                                CorrelationIdFilter.java
+                                KafkaProducerConfig.java
+                                SecurityConfig.java
+                                TicketingClockConfig.java
+                            controller/
+                                ApiExceptionHandler.java
+                                PaymentController.java
+                            dto/
+                                request/
+                                response/
+                                ChapaCallbackRequest.java
+                                ChapaInitializeResponse.java
+                                ChapaPaymentResponse.java
+                                ChapaVerifyResponse.java
+                                CreatePaymentRequest.java
+                                FailPaymentRequest.java
+                                PaymentResponse.java
+                                WebhookPayload.java
+                            entity/
+                                OutboxEntity.java
+                                PaymentEntity.java
+                            enums/
+                                OutboxStatus.java
+                                PaymentStatus.java
+                            exception/
+                                ChapaIntegrationException.java
+                                InvalidPaymentStateException.java
+                                PaymentNotFoundException.java
+                                ServiceUnavailableException.java
+                                WebhookVerificationException.java
+                            idempotency/
+                            mapper/
+                                PaymentMapper.java
+                            messaging/
+                                OutboxPublisher.java
+                                PaymentEventOutbox.java
+                            provider/
+                                ChapaClient.java
+                                ChapaPaymentProvider.java
+                                MockPaymentProvider.java
+                                PaymentProvider.java
+                                PaymentProviderFactory.java
+                            repository/
+                                OutboxRepository.java
+                                PaymentRepository.java
+                            service/
+                                impl/
+                                PaymentService.java
+                                PaymentServiceImpl.java
+                            webhook/
+                            PaymentServiceApplication.java
+        resources/
+            db/
+                migration/
+                    V1__init.sql
+                    V2__add_checkout_url.sql
+                    V3__outbox.sql
+            application.yml
+    test/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        payment/
+                            service/
+                                PaymentServiceImplTest.java
+                            PaymentWebhookIntegrationTest.java
+Dockerfile
+pom.xml
+``````
+
+## postman
+
+``````
+Ticketing.local.postman_environment.json
+Ticketing.postman_collection.json
+``````
+
+## reservation-service (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        reservation/
+                            cache/
+                            client/
+                                EventClient.java
+                                EventDetails.java
+                                SeatClient.java
+                                SeatDetails.java
+                            config/
+                                CorrelationContext.java
+                                CorrelationIdFilter.java
+                                KafkaConsumerConfig.java
+                                KafkaProducerConfig.java
+                                ReservationProperties.java
+                                SecurityConfig.java
+                                TicketingClockConfig.java
+                            controller/
+                                ApiExceptionHandler.java
+                                ReservationController.java
+                            dto/
+                                request/
+                                response/
+                                HoldReservationRequest.java
+                                ReservationResponse.java
+                                ReservationSeatResponse.java
+                            entity/
+                                OutboxEntity.java
+                                ReservationEntity.java
+                                ReservationSeatEntity.java
+                            enums/
+                                OutboxStatus.java
+                                ReservationStatus.java
+                            exception/
+                                DiscountNotApplicableException.java
+                                EventNotAvailableException.java
+                                EventNotBookableException.java
+                                InvalidReservationStateException.java
+                                ReservationExpiredException.java
+                                ReservationNotFoundException.java
+                                SeatAlreadyReservedException.java
+                                ServiceUnavailableException.java
+                            lock/
+                            mapper/
+                                ReservationMapper.java
+                            messaging/
+                                OutboxPublisher.java
+                                PaymentEventListener.java
+                                ReservationEventOutbox.java
+                            repository/
+                                OutboxRepository.java
+                                ReservationRepository.java
+                                ReservationSeatRepository.java
+                            scheduler/
+                                HoldExpirationScheduler.java
+                            service/
+                                impl/
+                                DiscountService.java
+                                PricingService.java
+                                ReservationService.java
+                                ReservationServiceImpl.java
+                            validation/
+                            ReservationServiceApplication.java
+        resources/
+            db/
+                migration/
+                    V1__init.sql
+                    V2__constraints.sql
+                    V3__indexes.sql
+                    V4__outbox_discounts.sql
+            application.yml
+    test/
+        concurrency/
+        integration/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        reservation/
+                            messaging/
+                                PaymentEventListenerTest.java
+                            service/
+                                ReservationServiceImplTest.java
+                            ReservationConcurrencyIntegrationTest.java
+        unit/
+.LCKpom.xml~
+Dockerfile
+pom.xml
+``````
+
+## scripts
+
+``````
+generate-manifest.ps1
+``````
+
+## ticket-service (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        ticket/
+                            client/
+                                RemoteReservationClient.java
+                                ReservationClient.java
+                                ReservationDetails.java
+                            config/
+                                CorrelationContext.java
+                                CorrelationIdFilter.java
+                                KafkaConsumerConfig.java
+                                KafkaProducerConfig.java
+                                SecurityConfig.java
+                                StorageConfig.java
+                                TicketingClockConfig.java
+                            controller/
+                                ApiExceptionHandler.java
+                                TicketController.java
+                            dto/
+                                IssueTicketsRequest.java
+                                TicketResponse.java
+                            entity/
+                                OutboxEntity.java
+                                TicketEntity.java
+                            enums/
+                                OutboxStatus.java
+                                TicketStatus.java
+                            exception/
+                                InvalidTicketStateException.java
+                                TicketGenerationException.java
+                                TicketNotFoundException.java
+                            mapper/
+                                TicketMapper.java
+                            messaging/
+                                OutboxPublisher.java
+                                PaymentEventListener.java
+                                TicketEventOutbox.java
+                            qr/
+                                QrCodeService.java
+                            repository/
+                                OutboxRepository.java
+                                TicketRepository.java
+                            service/
+                                impl/
+                                TicketService.java
+                                TicketServiceImpl.java
+                            storage/
+                                LocalTicketObjectStorage.java
+                                MinioTicketObjectStorage.java
+                                TicketObjectStorage.java
+                            TicketServiceApplication.java
+        resources/
+            db/
+                migration/
+                    V1__init.sql
+                    V2__qr_and_outbox.sql
+            application.yml
+    test/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        ticket/
+                            service/
+                                TicketServiceImplTest.java
+Dockerfile
+pom.xml
+``````
+
+## user-service (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        user/
+                            config/
+                                CorrelationContext.java
+                                RequestIdFilter.java
+                                SecurityConfig.java
+                            controller/
+                                ApiExceptionHandler.java
+                                UserController.java
+                            dto/
+                                request/
+                                    RegisterUserRequest.java
+                                    UpdateUserRequest.java
+                                response/
+                                    UserResponse.java
+                            entity/
+                                UserEntity.java
+                            exception/
+                                EmailAlreadyRegisteredException.java
+                                UserNotFoundException.java
+                            mapper/
+                            repository/
+                                UserRepository.java
+                            service/
+                                impl/
+                                UserService.java
+                                UserServiceImpl.java
+                            UserServiceApplication.java
+        resources/
+            db/
+                migration/
+                    V1__init.sql
+            application.yml
+    test/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        user/
+                            controller/
+                                UserControllerTest.java
+                            service/
+                                UserServiceImplTest.java
+                            UserPersistenceIntegrationTest.java
+Dockerfile
+pom.xml
+``````
+
+## venue-service (Maven module)
+
+``````
+src/
+    main/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        venue/
+                            config/
+                                RequestIdFilter.java
+                                SecurityConfig.java
+                            controller/
+                                VenueController.java
+                            dto/
+                                request/
+                                    CreateVenueRequest.java
+                                    SeatRequest.java
+                                    UpdateVenueRequest.java
+                                response/
+                                    PageResponse.java
+                                    SeatCountResponse.java
+                                    SeatResponse.java
+                                    VenueResponse.java
+                            entity/
+                                SeatEntity.java
+                                VenueEntity.java
+                            enums/
+                            exception/
+                                ApiError.java
+                                GlobalExceptionHandler.java
+                                InvalidSeatAttributesException.java
+                                VenueNotFoundException.java
+                            mapper/
+                            messaging/
+                            repository/
+                                SeatRepository.java
+                                VenueRepository.java
+                            service/
+                                impl/
+                                    SeatServiceImpl.java
+                                    VenueServiceImpl.java
+                                SeatService.java
+                                VenueService.java
+                            validation/
+                            VenueServiceApplication.java
+        resources/
+            db/
+                migration/
+                    V1__init.sql
+            application.yml
+    test/
+        java/
+            com/
+                yeab/
+                    ticketing/
+                        venue/
+                            controller/
+                                VenueControllerTest.java
+                            service/
+                                VenueServiceTest.java
+Dockerfile
+pom.xml
+``````
+
+

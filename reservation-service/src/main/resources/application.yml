@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: reservation-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME_RESERVATION:reservation_db}
+    username: ${DB_USERNAME:ticketing}
+    password: ${DB_PASSWORD:change-me}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: reservation-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/ticketing}
+
+app:
+  security:
+    enabled: ${SECURITY_ENABLED:false}
+  reservation:
+    hold-duration: ${RESERVATION_HOLD_DURATION:PT10M}
+    expiry-check-interval-ms: ${RESERVATION_EXPIRY_CHECK_MS:15000}
+    discounts:
+      WELCOME10:
+        type: PERCENT
+        value: 10
+      FLAT5:
+        type: FIXED
+        value: 5
+  integration:
+    event-service-url: ${EVENT_SERVICE_URL:http://localhost:8081}
+    venue-service-url: ${VENUE_SERVICE_URL:http://localhost:8082}
+  outbox:
+    publish-interval-ms: ${OUTBOX_PUBLISH_INTERVAL_MS:2000}
+    batch-size: 50
+    publish-timeout-ms: 5000
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  default-produces-media-type: application/json
+
+server:
+  port: ${SERVER_PORT_RESERVATION:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  pattern:
+    correlation: '%X{traceId:-}'

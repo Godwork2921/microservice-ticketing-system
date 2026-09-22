@@ -1,0 +1,1113 @@
+{
+  "info": {
+    "_postman_id": "11111111-1111-4111-8111-111111111111",
+    "name": "Ticketing System - Complete Workflow",
+    "description": "Event ticketing microservices platform. All requests run against locally launched services (gateway 8080, event 8081, venue 8082, reservation 8083, payment 8084, ticket 8085, notification 8086, analytics 8087, user 8088) and Keycloak (8180). Auth (Keycloak) is optional for workflows because the platform ships with app.security.enabled=false.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "id_token", "value": "", "type": "string" },
+    { "key": "admin_access_token", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "venueId", "value": "", "type": "string" },
+    { "key": "seat1", "value": "", "type": "string" },
+    { "key": "seat2", "value": "", "type": "string" },
+    { "key": "seat3", "value": "", "type": "string" },
+    { "key": "seatIds", "value": "", "type": "string" },
+    { "key": "eventId", "value": "", "type": "string" },
+    { "key": "reservationId", "value": "", "type": "string" },
+    { "key": "totalAmount", "value": "", "type": "string" },
+    { "key": "paymentId", "value": "", "type": "string" },
+    { "key": "providerPaymentId", "value": "", "type": "string" },
+    { "key": "ticketId", "value": "", "type": "string" },
+    { "key": "ticketCode", "value": "", "type": "string" },
+    { "key": "notificationId", "value": "", "type": "string" },
+    { "key": "expiredReservationId", "value": "00000000-0000-0000-0000-000000000000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Environment & Health",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{gatewayBase}}/actuator/health", "host": ["{{gatewayBase}}"], "path": ["actuator", "health"] } },
+          "response": []
+        },
+        {
+          "name": "Event Service Health",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{eventBase}}/actuator/health", "host": ["{{eventBase}}"], "path": ["actuator", "health"] } },
+          "response": []
+        },
+        {
+          "name": "Venue Service Health",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{venueBase}}/actuator/health", "host": ["{{venueBase}}"], "path": ["actuator", "health"] } },
+          "response": []
+        },
+        {
+          "name": "Reservation Service Health",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{reservationBase}}/actuator/health", "host": ["{{reservationBase}}"], "path": ["actuator", "health"] } },
+          "response": []
+        },
+        {
+          "name": "Payment Service Health",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{paymentBase}}/actuator/health", "host": ["{{paymentBase}}"], "path": ["actuator", "health"] } },
+          "response": []
+        },
+        {
+          "name": "Ticket Service Health",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{ticketBase}}/actuator/health", "host": ["{{ticketBase}}"], "path": ["actuator", "health"] } },
+          "response": []
+        },
+        {
+          "name": "Notification Service Health",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{notificationBase}}/actuator/health", "host": ["{{notificationBase}}"], "path": ["actuator", "health"] } },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Authentication",
+      "description": "user-service is a profile registry only; real auth is Keycloak (realm 'ticketing'). The client 'ticketing-api' is public (PKCE) with Direct Access Grants DISABLED, so the password-grant Login below only returns a token after you enable it in the Keycloak admin console (Realm ticketing > Clients > ticketing-api > Settings > 'Direct access grants' ON). The whole platform runs with app.security.enabled=false, so every API workflow works WITHOUT a token.",
+      "item": [
+        {
+          "name": "Register Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('register 201', function() { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('userId', pm.response.json().id);",
+                  "pm.collectionVariables.set('customerEmail', pm.response.json().email);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{customerEmail}}\",\"firstName\":\"Jane\",\"lastName\":\"Doe\",\"phone\":\"{{customerPhone}}\",\"locale\":\"en\"}" },
+            "url": { "raw": "{{userBase}}/api/users", "host": ["{{userBase}}"], "path": ["api", "users"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Token (master realm)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin token 200', function() { pm.response.to.have.status(200); });",
+                  "pm.environment.set('admin_access_token', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password", "type": "text" },
+                { "key": "client_id", "value": "admin-cli", "type": "text" },
+                { "key": "username", "value": "{{adminUser}}", "type": "text" },
+                { "key": "password", "value": "{{adminPassword}}", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{keycloakBase}}/realms/master/protocol/openid-connect/token", "host": ["{{keycloakBase}}"], "path": ["realms", "master", "protocol", "openid-connect", "token"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Login (OIDC Password Grant)",
+          "description": "Needs Direct Access Grants enabled on the ticketing-api client (disabled by default). Seeded demo customer: customer@yeab.com / Change123!",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('login 200', function() { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('access_token', data.access_token);",
+                  "pm.collectionVariables.set('refresh_token', data.refresh_token || '');",
+                  "pm.collectionVariables.set('id_token', data.id_token || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password", "type": "text" },
+                { "key": "client_id", "value": "{{clientId}}", "type": "text" },
+                { "key": "username", "value": "{{customerEmail}}", "type": "text" },
+                { "key": "password", "value": "{{customerPassword}}", "type": "text" },
+                { "key": "scope", "value": "openid profile email", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{keycloakBase}}/realms/{{realm}}/protocol/openid-connect/token", "host": ["{{keycloakBase}}"], "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('refresh 200', function() { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('access_token', pm.response.json().access_token);",
+                  "pm.collectionVariables.set('refresh_token', pm.response.json().refresh_token || pm.collectionVariables.get('refresh_token'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "refresh_token", "type": "text" },
+                { "key": "client_id", "value": "{{clientId}}", "type": "text" },
+                { "key": "refresh_token", "value": "{{refresh_token}}", "type": "text" },
+                { "key": "scope", "value": "openid profile email", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{keycloakBase}}/realms/{{realm}}/protocol/openid-connect/token", "host": ["{{keycloakBase}}"], "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('userinfo 200', function() { pm.response.to.have.status(200); });",
+                  "console.log(JSON.stringify(pm.response.json()));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{keycloakBase}}/realms/{{realm}}/protocol/openid-connect/userinfo", "host": ["{{keycloakBase}}"], "path": ["realms", "{{realm}}", "protocol", "openid-connect", "userinfo"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Venue",
+      "description": "Create a venue, then import its seats. Seat availability is not a separate query - it is enforced atomically at hold time (409 SEAT_ALREADY_RESERVED).",
+      "item": [
+        {
+          "name": "Create Venue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create venue 201', function() { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('venueId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Grand Arena\",\"address\":\"Addis Ababa, Bole Road\",\"timezone\":\"Africa/Addis_Ababa\",\"capacity\":200}" },
+            "url": { "raw": "{{venueBase}}/api/venues", "host": ["{{venueBase}}"], "path": ["api", "venues"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Venue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{venueBase}}/api/venues/{{venueId}}", "host": ["{{venueBase}}"], "path": ["api", "venues", "{{venueId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "List Venues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{venueBase}}/api/venues?page=0&size=10&sort=name", "host": ["{{venueBase}}"], "path": ["api", "venues"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }, { "key": "sort", "value": "name" }] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Seats (import)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('import seats 201', function() { pm.response.to.have.status(201); });",
+                  "const seats = pm.response.json();",
+                  "const ids = seats.map(s => s.id);",
+                  "pm.collectionVariables.set('seat1', seats[0] ? seats[0].id : '');",
+                  "pm.collectionVariables.set('seat2', seats[1] ? seats[1].id : '');",
+                  "pm.collectionVariables.set('seat3', seats[2] ? seats[2].id : '');",
+                  "pm.collectionVariables.set('seatIds', JSON.stringify(ids));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "[{\"section\":\"STANDARD\",\"row\":\"A\",\"number\":1,\"attributes\":\"{}\"},{\"section\":\"STANDARD\",\"row\":\"A\",\"number\":2,\"attributes\":\"{}\"},{\"section\":\"VIP\",\"row\":\"B\",\"number\":1,\"attributes\":\"{}\"}]" },
+            "url": { "raw": "{{venueBase}}/api/venues/{{venueId}}/seats", "host": ["{{venueBase}}"], "path": ["api", "venues", "{{venueId}}", "seats"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Event",
+      "description": "Events are created DRAFT and must be PUBLISHED before seats can be held (the workflow below will 422 otherwise).",
+      "item": [
+        {
+          "name": "Create Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('create event 201', function() { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('eventId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"venueId\":\"{{venueId}}\",\"title\":\"Night of Jazz 2026\",\"startAt\":\"2026-12-01T19:00:00Z\",\"endAt\":\"2026-12-01T22:00:00Z\",\"pricingRules\":\"{\\\"STANDARD\\\":100,\\\"VIP\\\":150,\\\"DEFAULT\\\":75}\"}" },
+            "url": { "raw": "{{eventBase}}/api/events", "host": ["{{eventBase}}"], "path": ["api", "events"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Publish Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('publish 200', function() { pm.response.to.have.status(200); });",
+                  "pm.test('status PUBLISHED', function() { pm.expect(pm.response.json().status).to.eql('PUBLISHED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"venueId\":\"{{venueId}}\",\"title\":\"Night of Jazz 2026\",\"startAt\":\"2026-12-01T19:00:00Z\",\"endAt\":\"2026-12-01T22:00:00Z\",\"status\":\"PUBLISHED\",\"pricingRules\":\"{\\\"STANDARD\\\":100,\\\"VIP\\\":150,\\\"DEFAULT\\\":75}\"}" },
+            "url": { "raw": "{{eventBase}}/api/events/{{eventId}}", "host": ["{{eventBase}}"], "path": ["api", "events", "{{eventId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{eventBase}}/api/events/{{eventId}}", "host": ["{{eventBase}}"], "path": ["api", "events", "{{eventId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "List Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{eventBase}}/api/events?page=0&size=10&sort=startAt,asc", "host": ["{{eventBase}}"], "path": ["api", "events"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }, { "key": "sort", "value": "startAt,asc" }] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Event Seats (availability)",
+          "description": "No dedicated seat-availability endpoint exists; seat occupancy is enforced atomically at hold time (409 SEAT_ALREADY_RESERVED, auto-released on hold expiry). This lists the venue's seats for the event window.",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{venueBase}}/api/venues/{{venueId}}/seats?page=0&size=100", "host": ["{{venueBase}}"], "path": ["api", "venues", "{{venueId}}", "seats"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "100" }] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Reservation",
+      "description": "Hold is atomic and idempotent (Idempotency-Key header). Prices are computed server-side. Holds auto-expire after 10 minutes (scheduler releases seats).",
+      "item": [
+        {
+          "name": "Hold Seats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('hold 201', function() { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.test('status HOLD', function() { pm.expect(body.status).to.eql('HOLD'); });",
+                  "pm.collectionVariables.set('reservationId', body.id);",
+                  "pm.collectionVariables.set('totalAmount', String(body.totalAmount));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"eventId\":\"{{eventId}}\",\"seatIds\":{{seatIds}},\"currency\":\"USD\"}" },
+            "url": { "raw": "{{reservationBase}}/api/reservations/hold", "host": ["{{reservationBase}}"], "path": ["api", "reservations", "hold"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reservation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{reservationBase}}/api/reservations/{{reservationId}}", "host": ["{{reservationBase}}"], "path": ["api", "reservations", "{{reservationId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Reservation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{reservationBase}}/api/reservations/{{reservationId}}/confirm", "host": ["{{reservationBase}}"], "path": ["api", "reservations", "{{reservationId}}", "confirm"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Reservation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{reservationBase}}/api/reservations/{{reservationId}}/cancel", "host": ["{{reservationBase}}"], "path": ["api", "reservations", "{{reservationId}}", "cancel"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Expired Hold (auto-release check)",
+          "description": "There is no manual expire endpoint: un-confirmed HOLDs auto-transition to EXPIRED after 10 minutes and their seats are released. Replace {{expiredReservationId}} with a held reservation left for >10 minutes and confirm it reads EXPIRED.",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{reservationBase}}/api/reservations/{{expiredReservationId}}", "host": ["{{reservationBase}}"], "path": ["api", "reservations", "{{expiredReservationId}}"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Payment",
+      "description": "Provider is 'mock' by default (app.payment.provider). amount must EXACTLY equal the reservation totalAmount and currency must match. Webhook signature = HMAC-SHA256 of the RAW body using {{webhookSecret}} (precomputed for you in the Webhook request).",
+      "item": [
+        {
+          "name": "Initiate Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('initiate 201', function() { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('paymentId', body.id);",
+                  "pm.collectionVariables.set('providerPaymentId', body.providerPaymentId || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"reservationId\":\"{{reservationId}}\",\"customerId\":\"{{userId}}\",\"amount\":{{totalAmount}},\"currency\":\"USD\",\"provider\":\"mock\",\"email\":\"{{customerEmail}}\",\"returnUrl\":\"http://localhost:8080/payment/return\",\"callbackUrl\":\"http://localhost:8084/api/payments/chapa/callback\"}" },
+            "url": { "raw": "{{paymentBase}}/api/payments", "host": ["{{paymentBase}}"], "path": ["api", "payments"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{paymentBase}}/api/payments/{{paymentId}}", "host": ["{{paymentBase}}"], "path": ["api", "payments", "{{paymentId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Status (by reservation)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{paymentBase}}/api/payments/reservation/{{reservationId}}", "host": ["{{paymentBase}}"], "path": ["api", "payments", "reservation", "{{reservationId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Chapa Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{paymentBase}}/api/payments/chapa/callback?tx_ref={{providerPaymentId}}", "host": ["{{paymentBase}}"], "path": ["api", "payments", "chapa", "callback"], "query": [{ "key": "tx_ref", "value": "{{providerPaymentId}}" }] }
+          },
+          "response": []
+        },
+        {
+          "name": "Chapa Webhook (signed)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = {",
+                  "  txRef: pm.collectionVariables.get('providerPaymentId'),",
+                  "  status: 'SUCCESS',",
+                  "  amount: Number(pm.collectionVariables.get('totalAmount')),",
+                  "  currency: 'USD',",
+                  "  reference: 'ref-' + pm.collectionVariables.get('paymentId')",
+                  "};",
+                  "const raw = JSON.stringify(payload);",
+                  "pm.request.body.mode = 'raw';",
+                  "pm.request.body.raw = raw;",
+                  "const sig = CryptoJS.HmacSHA256(raw, pm.environment.get('webhookSecret') || 'ticketing-dev-webhook-secret').toString(CryptoJS.enc.Hex);",
+                  "pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
+                  "pm.request.headers.upsert({ key: 'X-Webhook-Signature', value: sig });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('webhook 200', function() { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "" },
+            "url": { "raw": "{{paymentBase}}/api/payments/webhook/mock", "host": ["{{paymentBase}}"], "path": ["api", "payments", "webhook", "mock"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Simulate Success (dev path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('succeed 200', function() { pm.response.to.have.status(200); });",
+                  "pm.test('status SUCCEEDED', function() { pm.expect(pm.response.json().status).to.eql('SUCCEEDED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{paymentBase}}/api/payments/{{paymentId}}/succeed", "host": ["{{paymentBase}}"], "path": ["api", "payments", "{{paymentId}}", "succeed"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 - Ticket",
+      "description": "In production, tickets are issued via the payment.successful Kafka event. POST /api/tickets is a dev path. QR endpoint returns image/png bytes encoding the ticket code.",
+      "item": [
+        {
+          "name": "Get Ticket",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{ticketBase}}/api/tickets/{{ticketId}}", "host": ["{{ticketBase}}"], "path": ["api", "tickets", "{{ticketId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "List Tickets for Reservation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('tickets 200', function() { pm.response.to.have.status(200); });",
+                  "const tickets = pm.response.json();",
+                  "if (tickets.length) {",
+                  "  pm.collectionVariables.set('ticketId', tickets[0].id);",
+                  "  pm.collectionVariables.set('ticketCode', tickets[0].ticketCode);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{ticketBase}}/api/tickets/reservation/{{reservationId}}", "host": ["{{ticketBase}}"], "path": ["api", "tickets", "reservation", "{{reservationId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Download Ticket (QR)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{ticketBase}}/api/tickets/{{ticketId}}/qr", "host": ["{{ticketBase}}"], "path": ["api", "tickets", "{{ticketId}}", "qr"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Ticket",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{ticketBase}}/api/tickets/validate?ticketCode={{ticketCode}}", "host": ["{{ticketBase}}"], "path": ["api", "tickets", "validate"], "query": [{ "key": "ticketCode", "value": "{{ticketCode}}" }] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07 - Notification",
+      "description": "The async chain auto-sends an EMAIL notification ('Your tickets are ready') after ticket issuance via notification.requested. This folder queries and manually triggers it.",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('notifications 200', function() { pm.response.to.have.status(200); });",
+                  "const list = pm.response.json();",
+                  "if (list.content && list.content.length) { pm.collectionVariables.set('notificationId', list.content[0].id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{notificationBase}}/api/notifications?customerId={{userId}}&page=0&size=20", "host": ["{{notificationBase}}"], "path": ["api", "notifications"], "query": [{ "key": "customerId", "value": "{{userId}}" }, { "key": "page", "value": "0" }, { "key": "size", "value": "20" }] }
+          },
+          "response": []
+        },
+        {
+          "name": "Notification Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{notificationBase}}/api/notifications/{{notificationId}}", "host": ["{{notificationBase}}"], "path": ["api", "notifications", "{{notificationId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Notification (manual)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"idempotencyKey\":\"manual-{{$guid}}\",\"customerId\":\"{{userId}}\",\"channel\":\"EMAIL\",\"recipient\":\"{{customerEmail}}\",\"subject\":\"Manual test\",\"message\":\"This is a manual notification sent from Postman.\"}" },
+            "url": { "raw": "{{notificationBase}}/api/notifications", "host": ["{{notificationBase}}"], "path": ["api", "notifications"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "08 - Analytics",
+      "description": "Analytics is fed by Kafka (reservation/payment/ticket/event/notification topics). The data surface is overview + summary; each 'report' below reads the relevant metric from those endpoints.",
+      "item": [
+        {
+          "name": "Reservation Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('overview 200', function() { pm.response.to.have.status(200); });",
+                  "console.log('confirmedReservations=' + pm.response.json().confirmedReservations);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{analyticsBase}}/api/analytics/overview", "host": ["{{analyticsBase}}"], "path": ["api", "analytics", "overview"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('overview 200', function() { pm.response.to.have.status(200); });",
+                  "console.log('totalRevenue=' + pm.response.json().totalRevenue);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{analyticsBase}}/api/analytics/overview", "host": ["{{analyticsBase}}"], "path": ["api", "analytics", "overview"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Event Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{analyticsBase}}/api/analytics/summary", "host": ["{{analyticsBase}}"], "path": ["api", "analytics", "summary"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Revenue Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('overview 200', function() { pm.response.to.have.status(200); });",
+                  "const ov = pm.response.json();",
+                  "console.log('totalRevenue=' + ov.totalRevenue + ' confirmedReservations=' + ov.confirmedReservations + ' tickets=' + ov.ticketsGenerated);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{analyticsBase}}/api/analytics/overview", "host": ["{{analyticsBase}}"], "path": ["api", "analytics", "overview"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "09 - E2E COMPLETE WORKFLOW",
+      "description": "Run 1-14 sequentially. Steps capture IDs into collection variables automatically (chaining). Works with or without auth (SECURITY_ENABLED=false). Note: after payment success the reservation->tickets->notification chain is asynchronous (~25s); if step 11-13 look unprocessed, wait and re-run them.",
+      "item": [
+        {
+          "name": "01 Register Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('register 201', function() { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('userId', pm.response.json().id);",
+                  "pm.collectionVariables.set('customerEmail', pm.response.json().email);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{customerEmail}}\",\"firstName\":\"Jane\",\"lastName\":\"Doe\",\"phone\":\"{{customerPhone}}\",\"locale\":\"en\"}" },
+            "url": { "raw": "{{userBase}}/api/users", "host": ["{{userBase}}"], "path": ["api", "users"] }
+          },
+          "response": []
+        },
+        {
+          "name": "02 Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('access_token', data.access_token);",
+                  "pm.collectionVariables.set('refresh_token', data.refresh_token || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password", "type": "text" },
+                { "key": "client_id", "value": "{{clientId}}", "type": "text" },
+                { "key": "username", "value": "customer@yeab.com", "type": "text" },
+                { "key": "password", "value": "Change123!", "type": "text" },
+                { "key": "scope", "value": "openid profile email", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{keycloakBase}}/realms/{{realm}}/protocol/openid-connect/token", "host": ["{{keycloakBase}}"], "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"] }
+          },
+          "response": []
+        },
+        {
+          "name": "03 Create Venue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('venue 201', function() { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('venueId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Grand Arena E2E\",\"address\":\"Addis Ababa, Bole Road\",\"timezone\":\"Africa/Addis_Ababa\",\"capacity\":200}" },
+            "url": { "raw": "{{venueBase}}/api/venues", "host": ["{{venueBase}}"], "path": ["api", "venues"] }
+          },
+          "response": []
+        },
+        {
+          "name": "04 Create Seats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('seats 201', function() { pm.response.to.have.status(201); });",
+                  "const seats = pm.response.json();",
+                  "const ids = seats.map(s => s.id);",
+                  "pm.collectionVariables.set('seat1', seats[0] ? seats[0].id : '');",
+                  "pm.collectionVariables.set('seat2', seats[1] ? seats[1].id : '');",
+                  "pm.collectionVariables.set('seat3', seats[2] ? seats[2].id : '');",
+                  "pm.collectionVariables.set('seatIds', JSON.stringify(ids));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "[{\"section\":\"STANDARD\",\"row\":\"A\",\"number\":1,\"attributes\":\"{}\"},{\"section\":\"STANDARD\",\"row\":\"A\",\"number\":2,\"attributes\":\"{}\"},{\"section\":\"VIP\",\"row\":\"B\",\"number\":1,\"attributes\":\"{}\"}]" },
+            "url": { "raw": "{{venueBase}}/api/venues/{{venueId}}/seats", "host": ["{{venueBase}}"], "path": ["api", "venues", "{{venueId}}", "seats"] }
+          },
+          "response": []
+        },
+        {
+          "name": "05 Create Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('event 201', function() { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('eventId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"venueId\":\"{{venueId}}\",\"title\":\"Night of Jazz E2E\",\"startAt\":\"2026-12-01T19:00:00Z\",\"endAt\":\"2026-12-01T22:00:00Z\",\"pricingRules\":\"{\\\"STANDARD\\\":100,\\\"VIP\\\":150,\\\"DEFAULT\\\":75}\"}" },
+            "url": { "raw": "{{eventBase}}/api/events", "host": ["{{eventBase}}"], "path": ["api", "events"] }
+          },
+          "response": []
+        },
+        {
+          "name": "06 Get Available Seats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{venueBase}}/api/venues/{{venueId}}/seats?page=0&size=100", "host": ["{{venueBase}}"], "path": ["api", "venues", "{{venueId}}", "seats"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "100" }] }
+          },
+          "response": []
+        },
+        {
+          "name": "07 Publish Event (required before hold)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('published', function() { pm.expect(pm.response.json().status).to.eql('PUBLISHED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"venueId\":\"{{venueId}}\",\"title\":\"Night of Jazz E2E\",\"startAt\":\"2026-12-01T19:00:00Z\",\"endAt\":\"2026-12-01T22:00:00Z\",\"status\":\"PUBLISHED\",\"pricingRules\":\"{\\\"STANDARD\\\":100,\\\"VIP\\\":150,\\\"DEFAULT\\\":75}\"}" },
+            "url": { "raw": "{{eventBase}}/api/events/{{eventId}}", "host": ["{{eventBase}}"], "path": ["api", "events", "{{eventId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "08 Hold Seat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('hold 201', function() { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('reservationId', body.id);",
+                  "pm.collectionVariables.set('totalAmount', String(body.totalAmount));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"eventId\":\"{{eventId}}\",\"seatIds\":{{seatIds}},\"currency\":\"USD\"}" },
+            "url": { "raw": "{{reservationBase}}/api/reservations/hold", "host": ["{{reservationBase}}"], "path": ["api", "reservations", "hold"] }
+          },
+          "response": []
+        },
+        {
+          "name": "09 Initiate Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('pay 201', function() { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('paymentId', body.id);",
+                  "pm.collectionVariables.set('providerPaymentId', body.providerPaymentId || '');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"reservationId\":\"{{reservationId}}\",\"customerId\":\"{{userId}}\",\"amount\":{{totalAmount}},\"currency\":\"USD\",\"provider\":\"mock\",\"email\":\"{{customerEmail}}\",\"returnUrl\":\"http://localhost:8080/payment/return\",\"callbackUrl\":\"http://localhost:8084/api/payments/chapa/callback\"}" },
+            "url": { "raw": "{{paymentBase}}/api/payments", "host": ["{{paymentBase}}"], "path": ["api", "payments"] }
+          },
+          "response": []
+        },
+        {
+          "name": "10 Simulate/Process Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('succeeded', function() { pm.expect(pm.response.json().status).to.eql('SUCCEEDED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{paymentBase}}/api/payments/{{paymentId}}/succeed", "host": ["{{paymentBase}}"], "path": ["api", "payments", "{{paymentId}}", "succeed"] }
+          },
+          "response": []
+        },
+        {
+          "name": "11 Payment Webhook (signed)",
+          "description": "Informational: payment already SUCCEEDED via step 10, so this re-confirms the signed webhook contract. To test the webhook as the sole completion path, skip step 10 and use this instead.",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const payload = {",
+                  "  txRef: pm.collectionVariables.get('providerPaymentId'),",
+                  "  status: 'SUCCESS',",
+                  "  amount: Number(pm.collectionVariables.get('totalAmount')),",
+                  "  currency: 'USD',",
+                  "  reference: 'ref-' + pm.collectionVariables.get('paymentId')",
+                  "};",
+                  "const raw = JSON.stringify(payload);",
+                  "pm.request.body.mode = 'raw';",
+                  "pm.request.body.raw = raw;",
+                  "const sig = CryptoJS.HmacSHA256(raw, pm.environment.get('webhookSecret') || 'ticketing-dev-webhook-secret').toString(CryptoJS.enc.Hex);",
+                  "pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
+                  "pm.request.headers.upsert({ key: 'X-Webhook-Signature', value: sig });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "" },
+            "url": { "raw": "{{paymentBase}}/api/payments/webhook/mock", "host": ["{{paymentBase}}"], "path": ["api", "payments", "webhook", "mock"] }
+          },
+          "response": []
+        },
+        {
+          "name": "12 Verify Reservation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('reservation CONFIRMED', function() { pm.expect(pm.response.json().status).to.eql('CONFIRMED'); });",
+                  "pm.collectionVariables.set('reservationId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{reservationBase}}/api/reservations/{{reservationId}}", "host": ["{{reservationBase}}"], "path": ["api", "reservations", "{{reservationId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "13 Verify Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('tickets 200', function() { pm.response.to.have.status(200); });",
+                  "const tickets = pm.response.json();",
+                  "pm.test('tickets issued', function() { pm.expect(tickets.length).to.be.above(0); });",
+                  "pm.collectionVariables.set('ticketId', tickets[0].id);",
+                  "pm.collectionVariables.set('ticketCode', tickets[0].ticketCode);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{ticketBase}}/api/tickets/reservation/{{reservationId}}", "host": ["{{ticketBase}}"], "path": ["api", "tickets", "reservation", "{{reservationId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "14 Verify Notification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('notifications 200', function() { pm.response.to.have.status(200); });",
+                  "const list = pm.response.json();",
+                  "const items = list.content || list;",
+                  "pm.test('notification exists', function() { pm.expect(items.length).to.be.above(0); });",
+                  "pm.collectionVariables.set('notificationId', items[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{notificationBase}}/api/notifications?customerId={{userId}}&page=0&size=20", "host": ["{{notificationBase}}"], "path": ["api", "notifications"], "query": [{ "key": "customerId", "value": "{{userId}}" }, { "key": "page", "value": "0" }, { "key": "size", "value": "20" }] }
+          },
+          "response": []
+        },
+        {
+          "name": "15 Verify Analytics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('overview 200', function() { pm.response.to.have.status(200); });",
+                  "const ov = pm.response.json();",
+                  "console.log('E2E summary -> revenue=' + ov.totalRevenue + ' confirmedReservations=' + ov.confirmedReservations + ' tickets=' + ov.ticketsGenerated);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{analyticsBase}}/api/analytics/overview", "host": ["{{analyticsBase}}"], "path": ["api", "analytics", "overview"] }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

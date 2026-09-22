@@ -1,0 +1,457 @@
+name: ticketing
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ticketing}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-ticketing}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - ticketing
+
+  kafka:
+    image: apache/kafka:3.9.0
+    user: "0:0"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://:29092,CONTROLLER://:9093,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://${KAFKA_EXTERNAL_HOST:-localhost}:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: ${KAFKA_KRAFT_CLUSTER_ID:-abcdefghijklmnopqrstuv}
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafka-data:/tmp/kafka-logs
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      start_period: 30s
+      retries: 20
+    networks:
+      - ticketing
+
+  kafka-init:
+    image: apache/kafka:3.9.0
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        for t in ticketing.event.events ticketing.reservation.events ticketing.payment.events ticketing.ticket.events ticketing.notification.events ticketing.analytics.events; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic $$t --partitions 3 --replication-factor 1
+        done
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - ticketing
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me}
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_PORT:-8180}:8080"
+    volumes:
+      - ./infrastructure/keycloak/realm-export.json:/opt/keycloak/data/import/ticketing-realm.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/keycloak/bin/kc.sh show-config >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 60s
+      start_period: 60s
+      retries: 20
+    networks:
+      - ticketing
+
+  kcadm-init:
+    image: quay.io/keycloak/keycloak:26.0.7
+    entrypoint: ["/bin/bash", "/opt/keycloak/kcadm-init.sh"]
+    environment:
+      KC_HOST: http://keycloak:8080
+      KC_REALM: ticketing
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me}
+      KEYCLOAK_USER_PASSWORD: ${KEYCLOAK_USER_PASSWORD:-Change123!}
+    volumes:
+      - ./infrastructure/keycloak/kcadm-init.sh:/opt/keycloak/kcadm-init.sh:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - ticketing
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - ticketing
+
+  minio-init:
+    image: minio/mc:latest
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - >-
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
+        mc mb --ignore-existing local/$${MINIO_BUCKET}
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me}
+      MINIO_BUCKET: ${MINIO_BUCKET:-tickets}
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - ticketing
+
+  event-service:
+    build:
+      context: .
+      dockerfile: event-service/Dockerfile
+    environment:
+      SERVER_PORT_EVENT: 8081
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      DB_NAME_EVENT: ${DB_NAME_EVENT:-event_db}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ticketing
+      SECURITY_ENABLED: "false"
+      VENUE_SERVICE_URL: http://venue-service:8082
+    ports:
+      - "${SERVER_PORT_EVENT:-8081}:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/actuator/health && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticketing
+
+  venue-service:
+    build:
+      context: .
+      dockerfile: venue-service/Dockerfile
+    environment:
+      SERVER_PORT_VENUE: 8082
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      DB_NAME_VENUE: ${DB_NAME_VENUE:-venue_db}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ticketing
+      SECURITY_ENABLED: "false"
+    ports:
+      - "${SERVER_PORT_VENUE:-8082}:8082"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8082/actuator/health && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticketing
+
+  reservation-service:
+    build:
+      context: .
+      dockerfile: reservation-service/Dockerfile
+    environment:
+      SERVER_PORT_RESERVATION: 8083
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      DB_NAME_RESERVATION: ${DB_NAME_RESERVATION:-reservation_db}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ticketing
+      SECURITY_ENABLED: "false"
+      EVENT_SERVICE_URL: http://event-service:8081
+      VENUE_SERVICE_URL: http://venue-service:8082
+    ports:
+      - "${SERVER_PORT_RESERVATION:-8083}:8083"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/actuator/health && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticketing
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    environment:
+      SERVER_PORT_PAYMENT: 8084
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      DB_NAME_PAYMENT: ${DB_NAME_PAYMENT:-payment_db}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ticketing
+      SECURITY_ENABLED: "false"
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
+      RESERVATION_SERVICE_URL: http://reservation-service:8083
+    ports:
+      - "${SERVER_PORT_PAYMENT:-8084}:8084"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8084/actuator/health && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticketing
+
+  ticket-service:
+    build:
+      context: .
+      dockerfile: ticket-service/Dockerfile
+    environment:
+      SERVER_PORT_TICKET: 8085
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      DB_NAME_TICKET: ${DB_NAME_TICKET:-ticket_db}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ticketing
+      SECURITY_ENABLED: "false"
+      STORAGE_ENABLED: "true"
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me}
+      MINIO_BUCKET: ${MINIO_BUCKET:-tickets}
+      RESERVATION_SERVICE_URL: http://reservation-service:8083
+    ports:
+      - "${SERVER_PORT_TICKET:-8085}:8085"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8085/actuator/health && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticketing
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    environment:
+      SERVER_PORT_NOTIFICATION: 8086
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      DB_NAME_NOTIFICATION: ${DB_NAME_NOTIFICATION:-notification_db}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ticketing
+      SECURITY_ENABLED: "false"
+    ports:
+      - "${SERVER_PORT_NOTIFICATION:-8086}:8086"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8086/actuator/health && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticketing
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: analytics-service/Dockerfile
+    environment:
+      SERVER_PORT_ANALYTICS: 8087
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      DB_NAME_ANALYTICS: ${DB_NAME_ANALYTICS:-analytics_db}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ticketing
+      SECURITY_ENABLED: "false"
+    ports:
+      - "${SERVER_PORT_ANALYTICS:-8087}:8087"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8087/actuator/health && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticketing
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    environment:
+      SERVER_PORT_USER: 8088
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-ticketing}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      DB_NAME_USER: ${DB_NAME_USER:-user_db}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ticketing
+      SECURITY_ENABLED: "false"
+    ports:
+      - "${SERVER_PORT_USER:-8088}:8088"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8088/actuator/health && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ticketing
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    environment:
+      SERVER_PORT_GATEWAY: 8080
+      EVENT_SERVICE_URL: http://event-service:8081
+      VENUE_SERVICE_URL: http://venue-service:8082
+      RESERVATION_SERVICE_URL: http://reservation-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+      TICKET_SERVICE_URL: http://ticket-service:8085
+      NOTIFICATION_SERVICE_URL: http://notification-service:8086
+      ANALYTICS_SERVICE_URL: http://analytics-service:8087
+      USER_SERVICE_URL: http://user-service:8088
+    ports:
+      - "${SERVER_PORT_GATEWAY:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health && exit 0 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      - event-service
+      - venue-service
+      - reservation-service
+      - payment-service
+      - ticket-service
+      - notification-service
+      - analytics-service
+      - user-service
+    restart: unless-stopped
+    networks:
+      - ticketing
+
+volumes:
+  postgres-data:
+  kafka-data:
+  minio-data:
+
+networks:
+  ticketing:
+    name: ticketing
+    driver: bridge
