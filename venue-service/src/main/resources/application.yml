@@ -23,6 +23,9 @@ app:
     enabled: ${SECURITY_ENABLED:false}
 server:
   port: ${SERVER_PORT_VENUE:8082}
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
 management:
   endpoints:
     web:
