@@ -1,5 +1,6 @@
 package com.yeab.ticketing.user.config;
 
+import com.yeab.ticketing.common.docs.OpenApiDocsPaths;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +31,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers("/actuator/health", "/actuator/info").permitAll();
+                    authorize.requestMatchers(OpenApiDocsPaths.publicApiDocsPaths()).permitAll();
                     authorize.requestMatchers(GET, "/api/users/**").permitAll();
                     if (securityEnabled) {
                         authorize.requestMatchers(POST, "/api/users/**").permitAll();

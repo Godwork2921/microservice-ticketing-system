@@ -1,5 +1,6 @@
 package com.yeab.ticketing.reservation.config;
 
+import com.yeab.ticketing.common.docs.OpenApiDocsPaths;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/actuator/health", "/actuator/info").permitAll();
+                    auth.requestMatchers(OpenApiDocsPaths.publicApiDocsPaths()).permitAll();
                     if (enabled) auth.anyRequest().authenticated(); else auth.anyRequest().permitAll();
                 });
         if (enabled) http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> { }));
