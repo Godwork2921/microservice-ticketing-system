@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local scratch copy of the project (contains node_modules and a .env) ###
+SRMS/
